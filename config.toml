@@ -1,0 +1,47 @@
+# Helix General Editor Configuration
+
+theme = "github_dark_high_contrast"
+
+[editor]
+line-number = "relative" # relative | absolute
+color-modes = true       # mode indicator in status line
+true-color = true
+bufferline = "multiple"
+popup-border = "all"
+end-of-line-diagnostics = "hint"
+
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+ 
+[editor.indent-guides]
+render = true
+character = "│"
+skip-levels = 1
+
+[editor.lsp]
+display-messages = true
+display-inlay-hints = true
+display-signature-help-docs = true
+auto-signature-help = true
+snippets = true
+goto-reference-include-declaration = false
+
+[editor.file-picker]
+hidden = false
+git-ignore = true
+ignore = true
+
+[editor.auto-save]
+focus-lost = true
+ 
+[editor.gutters]
+layout = ["diagnostics", "spacer", "line-numbers", "spacer", "diff"]
+ 
+[editor.statusline]
+left = ["mode", "spinner", "version-control", "file-name", "read-only-indicator", "file-modification-indicator"]
+center = []
+right = ["diagnostics", "selections", "position", "file-encoding", "file-type"]
+separator = "│"

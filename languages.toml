@@ -1,0 +1,44 @@
+[[language]]
+name = "markdown"
+text-width = 80
+soft-wrap.enable = true
+soft-wrap.wrap-at-text-width = true
+
+
+[[language]]
+name = "go"
+auto-format = true                         # format on save via gopls (goimports-equivalent)
+diagnostic-severity = "hint"               # show everything gopls reports, down to hints
+text-width = 100
+#rulers = [100]
+roots = ["go.mod", "go.work", ".git"]
+indent = { tab-width = 4, unit = "\t" }    # gofmt mandates tabs; this just affects the editor's own indent logic
+language-servers = ["gopls"]
+
+[[language]]
+name = "gomod"
+language-servers = ["gopls"]
+auto-format = true
+
+[language-server.gopls.config]
+"formatting.gofumpt" = true                 # stricter superset of gofmt
+# "formatting.local" = "github.com/yourorg" # groups your own module's imports separately
+"build.buildFlags" = []                     # e.g. ["-tags=integration"]
+"ui.completion.usePlaceholders" = true
+"ui.completion.completionBudget" = "100ms"
+"ui.diagnostic.staticcheck" = true
+"ui.diagnostic.analyses" = { unusedparams = true, unusedwrite = true, unusedvariable = true, nilness = true, shadow = true, useany = true, ST1000 = false }
+"ui.semanticTokens" = true
+"ui.navigation.importShortcut" = "Both"
+"ui.codelenses" = { generate = true, regenerate_cgo = true, tidy = true, upgrade_dependency = true, vendor = true, test = true, run_govulncheck = true, gc_details = false }
+"ui.inlayhint.hints" = { assignVariableTypes = true, compositeLiteralFields = true, compositeLiteralTypes = true, constantValues = true, functionTypeParameters = true, parameterNames = false, rangeVariableTypes = true }
+
+# --- Optional: golangci-lint as a second LSP (Language Server Protocol) source, diagnostics only ---
+# Install: go install github.com/nametake/golangci-lint-langserver@latest
+# Adjust the --out-format flag if your golangci-lint version expects a different one.
+[language-server.golangci-lint-langserver]
+command = "golangci-lint-langserver"
+ 
+[language-server.golangci-lint-langserver.config]
+command = ["golangci-lint", "run", "--out-format", "json", "--issues-exit-code=0"]
+ 
