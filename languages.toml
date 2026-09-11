@@ -41,4 +41,276 @@ command = "golangci-lint-langserver"
  
 [language-server.golangci-lint-langserver.config]
 command = ["golangci-lint", "run", "--out-format", "json", "--issues-exit-code=0"]
- 
+
+
+# =============================================================================
+# Web development: JavaScript / TypeScript / React / HTML / CSS / JSON / GraphQL
+# =============================================================================
+#
+# Tools (all installed globally with npm into the nvm-managed Node):
+#   npm install -g typescript@6 typescript-language-server \
+#     vscode-langservers-extracted graphql-language-service-cli prettier \
+#     @tailwindcss/language-server @olrtg/emmet-language-server
+#
+# Notes:
+#   * typescript-language-server prefers the project's own node_modules/typescript
+#     when present; the global TypeScript 6 is only the fallback. TypeScript 7
+#     (the native Go port) does not ship tsserver.js, so keep the global one at 6.
+#   * ESLint diagnostics come from vscode-eslint-language-server, which loads the
+#     project's local eslint and its config (flat config auto-detected). No global
+#     eslint is required and projects without an eslint config simply get nothing.
+#     IMPORTANT: vscode-langservers-extracted >= 4.9 ships an ESLint server that only
+#     supports LSP *pull* diagnostics, which Helix 25.07 does not implement, so it
+#     shows nothing. The last push-based release (4.8.0) is installed separately:
+#       npm install --prefix ~/.local/lib/vscode-eslint-language-server-4.8 vscode-langservers-extracted@4.8.0
+#       ln -s ~/.local/lib/vscode-eslint-language-server-4.8/node_modules/.bin/vscode-eslint-language-server \
+#             ~/.local/bin/vscode-eslint-language-server-4.8
+#     Once Helix gains pull diagnostics, switch the command back to
+#     "vscode-eslint-language-server" and drop the 4.8 install.
+#   * Prettier is the formatter for every web language below. `%{buffer_name}`
+#     lets prettier pick the parser and honour the project's .prettierrc and
+#     .prettierignore. It takes precedence over LSP formatting.
+#   * tailwindcss-ls is inert until it finds a Tailwind config in the workspace.
+#   * Verify with `hx --health typescript` (or tsx, html, css, json, graphql).
+
+# --- Language servers ---------------------------------------------------------
+
+[language-server.typescript-language-server]
+command = "typescript-language-server"
+args = ["--stdio"]
+
+[language-server.typescript-language-server.config]
+hostInfo = "helix"
+# Complete `fn` as `fn(|)` and move into the parens (snippet).
+completions = { completeFunctionCalls = true }
+
+[language-server.typescript-language-server.config.preferences]
+quotePreference = "auto"                       # match what the file already uses
+importModuleSpecifierPreference = "shortest"   # shortest | relative | non-relative | project-relative
+importModuleSpecifierEnding = "auto"
+includeCompletionsForModuleExports = true      # auto-import suggestions from other modules
+includeCompletionsForImportStatements = true
+includeCompletionsWithSnippetText = true
+includeCompletionsWithInsertText = true
+includeAutomaticOptionalChainCompletions = true
+includeCompletionsWithClassMemberSnippets = true
+includeCompletionsWithObjectLiteralMethodSnippets = true
+jsxAttributeCompletionStyle = "auto"           # auto | braces | none
+providePrefixAndSuffixTextForRename = true
+allowRenameOfImportPath = true
+allowTextChangesInNewFiles = true
+displayPartsForJSDoc = true
+useLabelDetailsInCompletionEntries = true
+
+# Inlay hints. `includeInlayParameterNameHints` accepts "none" | "literals" | "all";
+# "literals" only annotates literal arguments (e.g. `f(/* count: */ 3)`) and is
+# far less noisy than "all". Toggle inlay hints at runtime with :toggle lsp.display-inlay-hints
+[language-server.typescript-language-server.config.typescript.inlayHints]
+includeInlayEnumMemberValueHints = true
+includeInlayFunctionLikeReturnTypeHints = true
+includeInlayFunctionParameterTypeHints = true
+includeInlayParameterNameHints = "literals"
+includeInlayParameterNameHintsWhenArgumentMatchesName = false
+includeInlayPropertyDeclarationTypeHints = true
+includeInlayVariableTypeHints = false
+includeInlayVariableTypeHintsWhenTypeMatchesName = false
+
+[language-server.typescript-language-server.config.javascript.inlayHints]
+includeInlayEnumMemberValueHints = true
+includeInlayFunctionLikeReturnTypeHints = true
+includeInlayFunctionParameterTypeHints = true
+includeInlayParameterNameHints = "literals"
+includeInlayParameterNameHintsWhenArgumentMatchesName = false
+includeInlayPropertyDeclarationTypeHints = true
+includeInlayVariableTypeHints = false
+includeInlayVariableTypeHintsWhenTypeMatchesName = false
+
+# ESLint (diagnostics + code actions such as "fix this" / "disable rule").
+# Uses the project's local eslint. ESLint 9 flat config (eslint.config.*) is
+# auto-detected; legacy .eslintrc.* still works for ESLint 8.
+[language-server.vscode-eslint-language-server]
+command = "vscode-eslint-language-server-4.8"     # see note at top of this section
+args = ["--stdio"]
+
+[language-server.vscode-eslint-language-server.config]
+validate = "on"
+run = "onType"                                 # onType | onSave
+experimental = {}                              # must exist (server reads experimental.useFlatConfig); empty = auto-detect flat vs legacy config
+nodePath = ""                                  # "" = resolve eslint from the project
+rulesCustomizations = []                       # e.g. [{ rule = "no-unused-vars", severity = "warn" }]
+problems = { shortenToSingleLine = false }
+format = false                                 # prettier formats; eslint only lints
+quiet = false                                  # set true to hide warnings and show only errors
+onIgnoredFiles = "off"
+codeActionOnSave = { mode = "all" }
+workingDirectory = { mode = "auto" }           # "auto" copes with monorepos / nested packages
+
+[language-server.vscode-eslint-language-server.config.codeAction.disableRuleComment]
+enable = true
+location = "separateLine"
+
+[language-server.vscode-eslint-language-server.config.codeAction.showDocumentation]
+enable = true
+
+[language-server.vscode-html-language-server]
+command = "vscode-html-language-server"
+args = ["--stdio"]
+
+[language-server.vscode-html-language-server.config]
+provideFormatter = false                       # prettier formats
+html = { autoClosingTags = true, autoCreateQuotes = true }
+css = { validate = { enable = true } }         # <style> blocks
+javascript = { validate = { enable = true } }  # <script> blocks
+
+[language-server.vscode-css-language-server]
+command = "vscode-css-language-server"
+args = ["--stdio"]
+
+[language-server.vscode-css-language-server.config]
+provideFormatter = false                       # prettier formats
+css = { validate = { enable = true }, lint = { unknownAtRules = "ignore" } }   # ignore @tailwind/@apply etc.
+scss = { validate = { enable = true }, lint = { unknownAtRules = "ignore" } }
+less = { validate = { enable = true }, lint = { unknownAtRules = "ignore" } }
+
+# JSON with schema validation/completion from SchemaStore for common config files.
+[language-server.vscode-json-language-server]
+command = "vscode-json-language-server"
+args = ["--stdio"]
+
+[language-server.vscode-json-language-server.config]
+provideFormatter = false                       # prettier formats
+
+[language-server.vscode-json-language-server.config.json]
+validate = { enable = true }
+format = { enable = false }
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = ["package.json"]
+url = "https://json.schemastore.org/package.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = ["tsconfig.json", "tsconfig.*.json", "jsconfig.json"]
+url = "https://json.schemastore.org/tsconfig.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = [".prettierrc", ".prettierrc.json"]
+url = "https://json.schemastore.org/prettierrc.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = [".eslintrc", ".eslintrc.json"]
+url = "https://json.schemastore.org/eslintrc.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = [".babelrc", ".babelrc.json", "babel.config.json"]
+url = "https://json.schemastore.org/babelrc.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = ["lerna.json"]
+url = "https://json.schemastore.org/lerna.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = ["turbo.json"]
+url = "https://turbo.build/schema.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = ["vercel.json"]
+url = "https://openapi.vercel.sh/vercel.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = [".vscode/settings.json"]
+url = "https://json.schemastore.org/vscode-settings.json"
+
+[[language-server.vscode-json-language-server.config.json.schemas]]
+fileMatch = ["manifest.json", "*.webmanifest"]
+url = "https://json.schemastore.org/web-manifest.json"
+
+# GraphQL: needs a graphql.config.* / .graphqlrc* in the project to know the schema.
+[language-server.graphql-language-service]
+command = "graphql-lsp"
+args = ["server", "-m", "stream"]
+
+# Tailwind CSS class completion/hover/lint. Only activates when a Tailwind config exists.
+[language-server.tailwindcss-ls]
+command = "tailwindcss-language-server"
+args = ["--stdio"]
+
+[language-server.tailwindcss-ls.config]
+# Let the server understand JSX/TSX class attributes and helper calls like clsx()/cva().
+tailwindCSS = { experimental = { classRegex = [["(?:clsx|cn|cva|classnames|twMerge)\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"]] } }
+
+# Emmet abbreviations (div>ul>li*3, .card, etc.) expanded via completion.
+[language-server.emmet-ls]
+command = "emmet-language-server"
+args = ["--stdio"]
+
+# --- Formatter ----------------------------------------------------------------
+# Prettier reads the project's .prettierrc / prettier.config.* and .prettierignore
+# relative to the file. `--stdin-filepath` also selects the right parser.
+# To override for a single project, drop a .helix/languages.toml in that project.
+
+# --- Languages ----------------------------------------------------------------
+
+[[language]]
+name = "javascript"
+auto-format = true
+language-servers = ["typescript-language-server", "vscode-eslint-language-server", "tailwindcss-ls", "emmet-ls"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+roots = ["package.json", "jsconfig.json", "tsconfig.json"]
+
+[[language]]
+name = "jsx"
+auto-format = true
+language-servers = ["typescript-language-server", "vscode-eslint-language-server", "tailwindcss-ls", "emmet-ls"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+roots = ["package.json", "jsconfig.json", "tsconfig.json"]
+
+[[language]]
+name = "typescript"
+auto-format = true
+language-servers = ["typescript-language-server", "vscode-eslint-language-server", "tailwindcss-ls", "emmet-ls"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+roots = ["package.json", "tsconfig.json"]
+
+[[language]]
+name = "tsx"
+auto-format = true
+language-servers = ["typescript-language-server", "vscode-eslint-language-server", "tailwindcss-ls", "emmet-ls"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+roots = ["package.json", "tsconfig.json"]
+
+[[language]]
+name = "html"
+auto-format = true
+language-servers = ["vscode-html-language-server", "tailwindcss-ls", "emmet-ls"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+
+[[language]]
+name = "css"
+auto-format = true
+language-servers = ["vscode-css-language-server", "tailwindcss-ls", "emmet-ls"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+
+[[language]]
+name = "scss"
+auto-format = true
+language-servers = ["vscode-css-language-server", "tailwindcss-ls", "emmet-ls"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+
+[[language]]
+name = "json"
+auto-format = true
+language-servers = ["vscode-json-language-server"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+
+[[language]]
+name = "jsonc"
+auto-format = true
+language-servers = ["vscode-json-language-server"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+
+[[language]]
+name = "graphql"
+auto-format = true
+language-servers = ["graphql-language-service"]
+formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
+roots = ["graphql.config.ts", "graphql.config.js", "graphql.config.json", "graphql.config.yml", "graphql.config.yaml", ".graphqlrc", ".graphqlrc.yml", ".graphqlrc.yaml", ".graphqlrc.json", ".graphqlrc.js", ".graphqlrc.ts", "package.json"]
