@@ -351,3 +351,108 @@ command = "clojure-lsp"
 "lint-project-files-after-startup?" = true
 # Example: change which forms cljfmt treats specially
 # "cljfmt" = { "indents" = { "my-macro" = [["inner", 0]] } }
+
+
+# =============================================================================
+# C / C++ / CMake
+# =============================================================================
+#
+# Toolchain: the Apple Command Line Tools (/Library/Developer/CommandLineTools) provide
+# clang, clangd, clang-format and lldb-dap, all at the same LLVM version, so they are used
+# directly. clangd is on PATH as /usr/bin/clangd; clang-format and lldb-dap are not, so they
+# are reached through `xcrun`, which resolves the active Xcode/CLT toolchain.
+#
+# MacPorts alternative (clang-21 and llvm-21 are installed): the same tools exist as
+# clangd-mp-21, clang-format-mp-21, clang-tidy-mp-21. Swap the commands below to use them,
+# or run `sudo port select --set clang mp-clang-21` to get unversioned names (note that this
+# also makes `clang`/`clang++` on PATH point at MacPorts instead of Apple's compiler).
+# There is no current lldb port (lldb-7.0 is the newest), so lldb-dap stays with the CLT.
+#
+# Projects: clangd wants a compile_commands.json at the project root. With CMake:
+#   cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug
+#   ln -sf build/compile_commands.json .
+# Without one (single-file exercises) clangd falls back to `fallbackFlags` below.
+# Formatting: clang-format reads the nearest .clang-format walking up from the file; put one
+# in ~/.clang-format for a personal default (e.g. `BasedOnStyle: Google` + `IndentWidth: 4`).
+#
+# CMake language server: install with `sudo port install neocmakelsp` (Helix's default for
+# the cmake language is [neocmakelsp, cmake-language-server]; either works once on PATH).
+
+[language-server.clangd]
+command = "clangd"
+args = [
+  "--background-index",            # index the whole project for go-to-definition/references
+  "--clang-tidy",                  # run clang-tidy checks (configured via .clang-tidy files)
+  "--completion-style=detailed",
+  "--header-insertion=iwyu",       # add #include for completed symbols, include-what-you-use style
+  "--header-insertion-decorators=0",
+  "--function-arg-placeholders=1", # complete f(|a, b|) with placeholders for the arguments
+  "--all-scopes-completion",
+  "--pch-storage=memory",
+  "--log=error",
+]
+
+[language-server.clangd.config]
+# Used only when no compile_commands.json / compile_flags.txt covers the file.
+fallbackFlags = ["-std=c++23", "-Wall", "-Wextra", "-Wpedantic"]
+
+[[language]]
+name = "cpp"
+auto-format = true
+language-servers = ["clangd"]
+formatter = { command = "xcrun", args = ["clang-format", "--assume-filename", "%{buffer_name}"] }
+indent = { tab-width = 4, unit = "    " }
+
+[language.debugger]
+name = "lldb-dap"
+transport = "stdio"
+command = "xcrun"
+args = ["lldb-dap"]
+
+[[language.debugger.templates]]
+name = "binary"
+request = "launch"
+completion = [ { name = "binary", completion = "filename" } ]
+args = { console = "internalConsole", program = "{0}", stopOnEntry = false }
+
+[[language.debugger.templates]]
+name = "binary with args"
+request = "launch"
+completion = [ { name = "binary", completion = "filename" }, { name = "args" } ]
+args = { console = "internalConsole", program = "{0}", args = ["{1}"] }
+
+[[language.debugger.templates]]
+name = "attach"
+request = "attach"
+completion = [ "pid" ]
+args = { console = "internalConsole", pid = "{0}" }
+
+[[language]]
+name = "c"
+auto-format = true
+language-servers = ["clangd"]
+formatter = { command = "xcrun", args = ["clang-format", "--assume-filename", "%{buffer_name}"] }
+indent = { tab-width = 4, unit = "    " }
+
+[language.debugger]
+name = "lldb-dap"
+transport = "stdio"
+command = "xcrun"
+args = ["lldb-dap"]
+
+[[language.debugger.templates]]
+name = "binary"
+request = "launch"
+completion = [ { name = "binary", completion = "filename" } ]
+args = { console = "internalConsole", program = "{0}", stopOnEntry = false }
+
+[[language.debugger.templates]]
+name = "attach"
+request = "attach"
+completion = [ "pid" ]
+args = { console = "internalConsole", pid = "{0}" }
+
+[[language]]
+name = "cmake"
+auto-format = true
+language-servers = ["neocmakelsp"]
