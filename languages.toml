@@ -456,3 +456,78 @@ args = { console = "internalConsole", pid = "{0}" }
 name = "cmake"
 auto-format = true
 language-servers = ["neocmakelsp"]
+
+
+# =============================================================================
+# Python
+# =============================================================================
+#
+# Tools (MacPorts):
+#   sudo port install pyright ruff py313-debugpy
+#   MacPorts selects `python` and `python3` separately (`port select --summary`). Here `python`
+#   is python313 while `python3` is unselected and falls back to Apple's /usr/bin/python3 (3.9),
+#   so the debugger below is launched with `python`, not `python3`.
+#   * pyright: type checking, completion, navigation, hover, rename.
+#   * ruff: linting (with fixes as code actions), import organising and formatting. It reads
+#     [tool.ruff] in the project's pyproject.toml or a ruff.toml; without one it uses its
+#     defaults (line length 88, rule set E/F). Formatting on save uses `ruff format` directly.
+#   * debugpy: debug adapter, run through the MacPorts-selected `python`. Debugging a project
+#     that uses a virtualenv works as long as debugpy is importable by that interpreter, so
+#     `pip install debugpy` into the venv if needed; pyright picks up ./.venv automatically.
+#   * Per-project pyright settings: pyrightconfig.json or [tool.pyright] in pyproject.toml.
+#     Settings reference: https://microsoft.github.io/pyright/#/settings
+
+[language-server.pyright]
+command = "pyright-langserver"
+args = ["--stdio"]
+
+[language-server.pyright.config.python.analysis]
+typeCheckingMode = "standard"          # off | basic | standard | strict (projects override via pyrightconfig.json)
+autoImportCompletions = true
+autoSearchPaths = true
+useLibraryCodeForTypes = true
+diagnosticMode = "openFilesOnly"       # "workspace" checks every file, slower on big projects
+
+[language-server.ruff]
+command = "ruff"
+args = ["server"]
+
+[language-server.ruff.config.settings]
+# Applied when the project has no ruff configuration of its own.
+organizeImports = true
+fixAll = true
+
+[[language]]
+name = "python"
+auto-format = true
+# pyright first so completion/hover/goto come from it; ruff supplies diagnostics and code actions.
+language-servers = [
+  "pyright",
+  { name = "ruff", except-features = ["hover", "completion", "goto-definition", "goto-declaration", "goto-type-definition", "goto-implementation", "goto-reference", "signature-help", "rename-symbol", "document-symbols", "workspace-symbols", "inlay-hints"] },
+]
+formatter = { command = "ruff", args = ["format", "--stdin-filename", "%{buffer_name}", "-"] }
+roots = ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "poetry.lock", "uv.lock", "pyrightconfig.json", "ruff.toml", ".git"]
+
+[language.debugger]
+name = "debugpy"
+transport = "stdio"
+command = "python"
+args = ["-m", "debugpy.adapter"]
+
+[[language.debugger.templates]]
+name = "launch file"
+request = "launch"
+completion = [ { name = "file", completion = "filename" } ]
+args = { program = "{0}", console = "internalConsole", justMyCode = true }
+
+[[language.debugger.templates]]
+name = "launch module"
+request = "launch"
+completion = [ { name = "module", default = "pytest" } ]
+args = { module = "{0}", console = "internalConsole", justMyCode = true }
+
+[[language.debugger.templates]]
+name = "attach (debugpy --listen host:port)"
+request = "attach"
+completion = [ { name = "host", default = "127.0.0.1" }, { name = "port", default = "5678" } ]
+args = { host = "{0}", port = "{1}" }   # Helix template args cannot nest tables; debugpy also accepts host/port at top level
