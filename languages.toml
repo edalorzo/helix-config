@@ -314,3 +314,40 @@ auto-format = true
 language-servers = ["graphql-language-service"]
 formatter = { command = "prettier", args = ["--stdin-filepath", "%{buffer_name}"] }
 roots = ["graphql.config.ts", "graphql.config.js", "graphql.config.json", "graphql.config.yml", "graphql.config.yaml", ".graphqlrc", ".graphqlrc.yml", ".graphqlrc.yaml", ".graphqlrc.json", ".graphqlrc.js", ".graphqlrc.ts", "package.json"]
+
+
+# =============================================================================
+# Clojure
+# =============================================================================
+#
+# Tools:
+#   * clojure, clj, lein and clojure-lsp via MacPorts (`sudo port install clojure-lsp`). Java via sdkman.
+#     Note: the MacPorts clojure-lsp port lags upstream (2023.02.27 as of 2026-09); if a newer
+#     release is ever needed, the native macos-amd64 zip from
+#     https://github.com/clojure-lsp/clojure-lsp/releases can be dropped into a PATH dir.
+#   * Diagnostics come from clj-kondo, which clojure-lsp bundles (no separate install).
+#   * Formatting is done by clojure-lsp with cljfmt; it honours a project's .cljfmt.edn or
+#     the :cljfmt key in .lsp/config.edn, so no external formatter is configured.
+#   * Per-project server settings live in <project>/.lsp/config.edn; user-wide defaults in
+#     ~/.config/clojure-lsp/config.edn. Settings reference: https://clojure-lsp.io/settings/
+#   * Extra textobjects (]f, maf, mac) come from runtime/queries/clojure/textobjects.scm
+#     in this config dir.
+#   * REPL: Helix has no REPL integration; run `clj` or `lein repl` in a split terminal.
+
+[[language]]
+name = "clojure"
+auto-format = true                         # format on save via clojure-lsp (cljfmt)
+language-servers = ["clojure-lsp"]
+roots = ["project.clj", "build.boot", "deps.edn", "shadow-cljs.edn", "bb.edn", ".git"]
+
+[language-server.clojure-lsp]
+command = "clojure-lsp"
+
+[language-server.clojure-lsp.config]
+# Sent as initializationOptions. Keys are clojure-lsp settings with the leading colon dropped.
+"semantic-tokens?" = true
+"hover" = { "hide-file-location?" = true, "arity-on-same-line?" = true }
+"completion" = { "analysis-type" = "fast-but-stale" }
+"lint-project-files-after-startup?" = true
+# Example: change which forms cljfmt treats specially
+# "cljfmt" = { "indents" = { "my-macro" = [["inner", 0]] } }
